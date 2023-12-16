@@ -1,0 +1,18 @@
+{
+	"name": "MentoringStorageOnlineCSLinkedService",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "AzureBlobStorage",
+		"typeProperties": {
+			"sasUri": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "MentoringKeyVaultCSLinkedService",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "MentoringStorageOnlineContainer"
+			}
+		}
+	}
+}

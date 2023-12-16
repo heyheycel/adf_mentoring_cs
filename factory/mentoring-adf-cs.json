@@ -1,0 +1,17 @@
+{
+	"name": "mentoring-adf-cs",
+	"properties": {
+		"globalParameters": {
+			"MentoringAzureKeyVault": {
+				"type": "string",
+				"value": "https://mentoring-key-vault-cs.vault.azure.net/secrets/MentoringLogicAccessApp/ca5ed1be7886419791ebb5156aee873c?api-version=7.4"
+			}
+		}
+	},
+	"location": "francecentral",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "6673439a-0b99-4b28-b57b-0f6cbbdc235f",
+		"tenantId": "b41b72d0-4e9f-4c26-8a69-f949f367c91d"
+	}
+}

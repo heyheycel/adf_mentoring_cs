@@ -1,0 +1,92 @@
+{
+	"name": "pipeline1",
+	"properties": {
+		"activities": [
+			{
+				"name": "Execute Pipeline1",
+				"type": "ExecutePipeline",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "MentoringMetaDataDrivenSolution",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "WebLogicApp",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "WebGet",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": {
+						"value": "@activity('WebGet').output.value",
+						"type": "Expression"
+					},
+					"method": "POST",
+					"body": {
+						"value": "{\n            \"dataFactoryName\": \"@{pipeline().DataFactory}\",\n                    \"pipelineRunInfo\": {\n                                    \"runId\":\"@{pipeline().RunId}\",\n                                                    \"startTime\": \"startime\",\n                                                                    \"status\": \"Succeded\",\n                                                                                    \"pipelinename\":\"@{pipeline().Pipeline}\"\n                                                                                                \n                                                                                                        },\n                                                                                                                  \"errorDetails\": {\n                                                                                                                                  \"errorCode\": \"Error\",\n                                                                                                                                                  \"errorMessage\": \"Error\"\n                                                                                                                                                          }\n                                                                                                                                                                      \n                                                                                                                                                                      }\n}",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "WebGet",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "Execute Pipeline1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": {
+						"value": "@pipeline().globalParameters.MentoringAzureKeyVault",
+						"type": "Expression"
+					},
+					"method": "GET",
+					"authentication": {
+						"type": "MSI",
+						"resource": "https://vault.azure.net"
+					}
+				}
+			}
+		],
+		"variables": {
+			"URL": {
+				"type": "String"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-12-09T05:24:23Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

@@ -1,0 +1,20 @@
+{
+	"name": "MentoringPipelineMonitoringFail",
+	"properties": {
+		"activities": [
+			{
+				"name": "Fail",
+				"type": "Fail",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"message": "This is a test, the pipeline has failed",
+					"errorCode": "404"
+				}
+			}
+		],
+		"annotations": [],
+		"lastPublishTime": "2023-12-04T22:06:14Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

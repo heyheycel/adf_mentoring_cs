@@ -1,0 +1,19 @@
+{
+	"name": "DestinationDataset_7vf",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "MentoringDatalakeCSLinkedService",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "Binary",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobStorageLocation",
+				"folderPath": "movies/archive",
+				"container": "raw"
+			}
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

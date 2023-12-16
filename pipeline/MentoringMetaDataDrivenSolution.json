@@ -1,0 +1,504 @@
+{
+	"name": "MentoringMetaDataDrivenSolution",
+	"properties": {
+		"activities": [
+			{
+				"name": "GetListTables",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "MentoringSQLETLControlMetadata",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "LoopArrayTables",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "GetListTables",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('GetListTables').output.value",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "CopyCsvSQL",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "DelimitedTextSource",
+									"additionalColumns": [
+										{
+											"name": "pipelineId",
+											"value": {
+												"value": "@pipeline().RunId",
+												"type": "Expression"
+											}
+										},
+										{
+											"name": "source_filename",
+											"value": "$$FILENAME"
+										}
+									],
+									"storeSettings": {
+										"type": "AzureBlobStorageReadSettings",
+										"recursive": false,
+										"wildcardFileName": {
+											"value": "@{split(item().SourcePath, '/')[3]}*.csv",
+											"type": "Expression"
+										},
+										"enablePartitionDiscovery": false
+									},
+									"formatSettings": {
+										"type": "DelimitedTextReadSettings"
+									}
+								},
+								"sink": {
+									"type": "AzureSqlSink",
+									"preCopyScript": {
+										"value": "\nDECLARE @schema NVARCHAR(50) = N'@{item().SchemaName}';\nDECLARE @table NVARCHAR(50) = N'@{item().TableName}';\n\nDECLARE @sql NVARCHAR(MAX) = CONCAT('TRUNCATE TABLE ', QUOTENAME(@schema), '.', QUOTENAME(@table));\n\nEXEC sp_executesql @sql;",
+										"type": "Expression"
+									},
+									"writeBehavior": "insert",
+									"sqlWriterUseTableLock": false,
+									"disableMetricsCollection": false
+								},
+								"enableStaging": false,
+								"validateDataConsistency": false,
+								"dataIntegrationUnits": {
+									"value": "@item().DIUValue",
+									"type": "Expression"
+								},
+								"translator": {
+									"value": "@json(item().ColumnMapping)",
+									"type": "Expression"
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "MentoringMetadataDrivenDatalakeSource",
+									"type": "DatasetReference",
+									"parameters": {
+										"filepath": {
+											"value": "@item().SourcePath",
+											"type": "Expression"
+										},
+										"ColumnDelimiter": {
+											"value": "@item().ColumnDelimiter",
+											"type": "Expression"
+										},
+										"Encoding": {
+											"value": "@item().Encoding",
+											"type": "Expression"
+										},
+										"EscapeCharacter": {
+											"value": "@item().EscapeCharacter",
+											"type": "Expression"
+										},
+										"QuoteCharacter": {
+											"value": "@item().QuoteCharacter",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "MentoringMetadataTargetSQL",
+									"type": "DatasetReference",
+									"parameters": {
+										"SchemaName": {
+											"value": "@item().SchemaName",
+											"type": "Expression"
+										},
+										"TableName": {
+											"value": "@item().TableName",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"name": "StoredProcedureLogInformation",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "CopyCsvSQL",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[etl].[sp_InsertCopyLogInformation]",
+								"storedProcedureParameters": {
+									"ActivityName": {
+										"value": {
+											"value": "CopyCsvSQL",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"BillingDuration": {
+										"value": {
+											"value": "@activity('CopyCsvSQL').output.billingReference.billableDuration[0].duration",
+											"type": "Expression"
+										},
+										"type": "Double"
+									},
+									"CopyDuration": {
+										"value": {
+											"value": "@activity('CopyCsvSQL').output.copyDuration",
+											"type": "Expression"
+										},
+										"type": "Int32"
+									},
+									"EndTime": {
+										"value": {
+											"value": "@addseconds(activity('CopyCsvSQL').output.executionDetails[0].start,activity('CopyCsvSQL').output.executionDetails[0].duration)",
+											"type": "Expression"
+										},
+										"type": "DateTime"
+									},
+									"MeterType": {
+										"value": {
+											"value": "@activity('CopyCsvSQL').output.billingReference.billableDuration[0].meterType",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"ParallelCopies": {
+										"value": {
+											"value": "@activity('CopyCsvSQL').output.usedParallelCopies",
+											"type": "Expression"
+										},
+										"type": "Int32"
+									},
+									"PipelineName": {
+										"value": {
+											"value": "@pipeline().Pipeline",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"PipelineRunId": {
+										"value": {
+											"value": "@pipeline().RunId",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"ProcessedFiles": {
+										"value": {
+											"value": "@activity('CopyCsvSQL').output.filesRead",
+											"type": "Expression"
+										},
+										"type": "Int32"
+									},
+									"QueueDuration": {
+										"value": {
+											"value": "@activity('CopyCsvSQL').output.executionDetails[0].profile.queue.duration",
+											"type": "Expression"
+										},
+										"type": "Int32"
+									},
+									"ReadRows": {
+										"value": {
+											"value": "@activity('CopyCsvSQL').output.rowsRead",
+											"type": "Expression"
+										},
+										"type": "Int32"
+									},
+									"StartTime": {
+										"value": {
+											"value": "@activity('CopyCsvSQL').output.executionDetails[0].start",
+											"type": "Expression"
+										},
+										"type": "DateTime"
+									},
+									"Status": {
+										"value": {
+											"value": "@activity('CopyCsvSQL').output.executionDetails[0].status",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"TransferDuration": {
+										"value": {
+											"value": "@activity('CopyCsvSQL').output.executionDetails[0].profile.transfer.duration",
+											"type": "Expression"
+										},
+										"type": "Int32"
+									},
+									"UsedDIU": {
+										"value": {
+											"value": "@activity('CopyCsvSQL').output.executionDetails[0].usedDataIntegrationUnits",
+											"type": "Expression"
+										},
+										"type": "Int32"
+									},
+									"WrittenRows": {
+										"value": {
+											"value": "@activity('CopyCsvSQL').output.rowsCopied",
+											"type": "Expression"
+										},
+										"type": "Int32"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "MentoringSQLDatabaseLinkedService",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "StoredProcedureLogErrors",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "CopyCsvSQL",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[etl].[[sp_InsertLogPipelineError]",
+								"storedProcedureParameters": {
+									"ActivityName": {
+										"value": {
+											"value": "CopyCsvSQL",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"ErrorCode": {
+										"value": {
+											"value": "@activity('CopyCsvSQL').Error.errorCode",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"ErrorMessage": {
+										"value": {
+											"value": "@activity('CopyCsvSQL').Error.message",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"FailureType": {
+										"value": {
+											"value": "@activity('CopyCsvSQL').Error.failureType",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"PipelineName": {
+										"value": {
+											"value": "@pipeline().Pipeline",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"PipelineRunId": {
+										"value": {
+											"value": "@pipeline().RunId",
+											"type": "Expression"
+										},
+										"type": "String"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "MentoringSQLDatabaseLinkedService",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "WebLogicAppEmailStatus",
+							"type": "WebActivity",
+							"dependsOn": [
+								{
+									"activity": "WebGet",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"url": {
+									"value": "@activity('WebGet').output.value",
+									"type": "Expression"
+								},
+								"method": "POST",
+								"body": {
+									"value": "{\n\"dataFactoryName\": \"@{pipeline().DataFactory}\",\n\"pipelinename\":\"@{pipeline().Pipeline}\",\n\"pipelinestatus\":\"@{activity('CopyCsvSQL').output.executionDetails[0].status}\",\n \"pipelinerunid\":\"@{pipeline().RunId}\",\n\"errorMessage\":\"No Error\",\n \"errorCode\": \"\"\n}",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "WebGet",
+							"type": "WebActivity",
+							"dependsOn": [
+								{
+									"activity": "StoredProcedureLogInformation",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"url": {
+									"value": "@pipeline().globalParameters.MentoringAzureKeyVault",
+									"type": "Expression"
+								},
+								"method": "GET",
+								"authentication": {
+									"type": "MSI",
+									"resource": "https://vault.azure.net"
+								}
+							}
+						},
+						{
+							"name": "WebLogicAppEmailError",
+							"type": "WebActivity",
+							"dependsOn": [
+								{
+									"activity": "WebGetError",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"url": {
+									"value": "@activity('WebGetError').output.value",
+									"type": "Expression"
+								},
+								"method": "POST",
+								"body": {
+									"value": "{\n\"dataFactoryName\": \"@{pipeline().DataFactory}\",\n\"pipelinename\":\"@{pipeline().Pipeline}\",\n\"pipelinestatus\":\"@{activity('CopyCsvSQL').output.executionDetails[0].status}\",\n\"pipelinerunid\":\"@{pipeline().RunId}\",\n\"errorMessage\":\"@{activity('CopyCsvSQL').Error.message}\",\n\"errorCode\": \"@{activity('CopyCsvSQL').Error.errorCode}\"\n}",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "WebGetError",
+							"type": "WebActivity",
+							"dependsOn": [
+								{
+									"activity": "StoredProcedureLogErrors",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"url": {
+									"value": "@pipeline().globalParameters.MentoringAzureKeyVault",
+									"type": "Expression"
+								},
+								"method": "GET",
+								"authentication": {
+									"type": "MSI",
+									"resource": "https://vault.azure.net"
+								}
+							}
+						}
+					]
+				}
+			}
+		],
+		"variables": {
+			"URL": {
+				"type": "String"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-12-10T22:11:20Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}
