@@ -1,0 +1,39 @@
+{
+	"name": "MentoringSQLDataMartSTGFactOnlinePurchaseMonthly",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "MentoringSQLDatabaseDataMartLinkedService",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "MonthKey",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "OnlineServiceCode",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "PurchaseAmount",
+				"type": "decimal",
+				"precision": 10,
+				"scale": 1
+			},
+			{
+				"name": "PurchaseQuantity",
+				"type": "int",
+				"precision": 10
+			}
+		],
+		"typeProperties": {
+			"schema": "stg",
+			"table": "FactOnlinePurchase_MonthlySnapshot_FS"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

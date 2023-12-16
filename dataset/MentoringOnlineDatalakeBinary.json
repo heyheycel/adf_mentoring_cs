@@ -1,0 +1,19 @@
+{
+	"name": "MentoringOnlineDatalakeBinary",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "MentoringDatalakeCSLinkedService",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "Binary",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobStorageLocation",
+				"folderPath": "online",
+				"container": "raw"
+			}
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

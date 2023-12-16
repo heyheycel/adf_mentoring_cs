@@ -1,0 +1,83 @@
+{
+	"name": "MentoringPipelineMasterMovies",
+	"properties": {
+		"activities": [
+			{
+				"name": "PipelineCopyToDatalake",
+				"type": "ExecutePipeline",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "MentoringPipelineCopyToDataLake",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "PipleineCopyToDatabaseStg",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "PipelineCopyToDatalake",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "MentoringPipelineLoadDatabaseStg",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "PipelinePopulateDBO",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "PipleineCopyToDatabaseStg",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "MentoringPipelineLoadDatabaseDBO",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "PipelineSendToArchive",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "PipelinePopulateDBO",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "MentoringPipelineArchiveDatalakeProcessed",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			}
+		],
+		"annotations": [],
+		"lastPublishTime": "2023-11-04T04:17:02Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

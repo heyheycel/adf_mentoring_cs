@@ -1,0 +1,104 @@
+{
+	"name": "DataFlowDimensionOnlineService",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "MentoringSQLMoviesOnlineService",
+						"type": "DatasetReference"
+					},
+					"name": "tOnlineService"
+				},
+				{
+					"dataset": {
+						"referenceName": "MentoringSQLDataMartDimOnlineService",
+						"type": "DatasetReference"
+					},
+					"name": "DimOnlineServiceSource"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "MentoringSQLDataMartDimOnlineService",
+						"type": "DatasetReference"
+					},
+					"name": "DimOnlineService"
+				}
+			],
+			"transformations": [
+				{
+					"name": "AddCreateModified",
+					"description": "Adding CreatedDate and ModifiedDate"
+				},
+				{
+					"name": "UpdateRows"
+				},
+				{
+					"name": "lookupDim"
+				},
+				{
+					"name": "FilterInsertsUpdates"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          ServiceId as integer,",
+				"          ServiceCode as string,",
+				"          ServiceName as string,",
+				"          CreatedDate as timestamp,",
+				"          ModifiedDate as timestamp",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> tOnlineService",
+				"source(output(",
+				"          ServiceKey as integer,",
+				"          ServiceCode as string,",
+				"          ServiceName as string,",
+				"          CreatedDate as timestamp,",
+				"          ModifiedDate as timestamp",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> DimOnlineServiceSource",
+				"lookupDim derive(CreatedDateTemp = iif(isNull(DimOnlineServiceSource@CreatedDate) , currentUTC(), DimOnlineServiceSource@CreatedDate),",
+				"          ModifiedDateTemp = currentUTC()) ~> AddCreateModified",
+				"FilterInsertsUpdates alterRow(upsertIf(tOnlineService@ModifiedDate>coalesce(DimOnlineServiceSource@ModifiedDate,toDate('1801-01-01')))) ~> UpdateRows",
+				"tOnlineService, DimOnlineServiceSource lookup(tOnlineService@ServiceCode == DimOnlineServiceSource@ServiceCode,",
+				"     multiple: false,",
+				"     pickup: 'any',",
+				"     broadcast: 'auto')~> lookupDim",
+				"AddCreateModified filter(or(tOnlineService@ModifiedDate>DimOnlineServiceSource@ModifiedDate, isNull(DimOnlineServiceSource@ServiceCode))) ~> FilterInsertsUpdates",
+				"UpdateRows sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          ServiceKey as integer,",
+				"          ServiceCode as string,",
+				"          ServiceName as string,",
+				"          CreatedDate as timestamp,",
+				"          ModifiedDate as timestamp",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:false,",
+				"     updateable:false,",
+				"     upsertable:true,",
+				"     keys:['ServiceCode'],",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          ServiceCode = tOnlineService@ServiceCode,",
+				"          ServiceName = tOnlineService@ServiceName,",
+				"          CreatedDate = CreatedDateTemp,",
+				"          ModifiedDate = ModifiedDateTemp",
+				"     )) ~> DimOnlineService"
+			]
+		}
+	}
+}

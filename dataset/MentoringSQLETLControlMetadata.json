@@ -1,0 +1,55 @@
+{
+	"name": "MentoringSQLETLControlMetadata",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "MentoringSQLDatabaseLinkedService",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "SourcePath",
+				"type": "nvarchar"
+			},
+			{
+				"name": "ColumnDelimiter",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Encoding",
+				"type": "nvarchar"
+			},
+			{
+				"name": "EscapeCharacter",
+				"type": "nvarchar"
+			},
+			{
+				"name": "QuoteCharacter",
+				"type": "nvarchar"
+			},
+			{
+				"name": "SchemaName",
+				"type": "nvarchar"
+			},
+			{
+				"name": "TableName",
+				"type": "nvarchar"
+			},
+			{
+				"name": "DIUValue",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "ColumnMapping",
+				"type": "nvarchar"
+			}
+		],
+		"typeProperties": {
+			"schema": "etl",
+			"table": "tControlMetadata"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

@@ -1,0 +1,6 @@
+{
+	"name": "MentoringSelfIntegrationRuntime",
+	"properties": {
+		"type": "SelfHosted"
+	}
+}

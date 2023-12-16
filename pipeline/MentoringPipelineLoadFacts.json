@@ -1,0 +1,34 @@
+{
+	"name": "MentoringPipelineLoadFacts",
+	"properties": {
+		"activities": [
+			{
+				"name": "DataFlowLoadFacts",
+				"type": "ExecuteDataFlow",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataflow": {
+						"referenceName": "DataFlowLoadFacts",
+						"type": "DataFlowReference"
+					},
+					"integrationRuntime": {
+						"referenceName": "Azure-IR-M8",
+						"type": "IntegrationRuntimeReference"
+					},
+					"traceLevel": "Fine"
+				}
+			}
+		],
+		"annotations": [],
+		"lastPublishTime": "2023-11-13T20:00:31Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}
